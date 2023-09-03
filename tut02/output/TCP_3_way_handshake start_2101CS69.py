@@ -11,7 +11,7 @@ SYN_PACKET = scapy.IP(dst=target_ip) / scapy.TCP(dport=target_port, flags="S")
 RESPONSE = scapy.sr1(SYN_PACKET, timeout=2, verbose=True)
 
 # Define the pcap file name for saving the packets
-pcap_filename = "tcp_handshake.pcap"
+pcap_filename = "TCP_3_way_handshake start_2101CS69.pcap"
 
 # Create a PcapWriter for saving packets
 pcap_writer = scapy.PcapWriter(pcap_filename)
