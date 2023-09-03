@@ -1,38 +1,33 @@
-import scapy.all as scapy
+from scapy.all import *
 
-# Target Website and Port
+#target ip
 target_ip = "149.28.158.93"
-target_port = 443  # 443 for HTTPS
+dport = 443
 
-# Create the SYN PACKET
-SYN_PACKET = scapy.IP(dst=target_ip) / scapy.TCP(dport=target_port, flags="S")
+#ip packet
+IPPKT = IP(dst=target_ip)
+#syn packet
+SYNPKT = TCP(dport=dport, flags="S")
 
-# Send and receive the RESPONSE
-RESPONSE = scapy.sr1(SYN_PACKET, timeout=2, verbose=True)
+SynAckResp = sr1(IPPKT / SYNPKT)
 
-# Define the pcap file name for saving the packets
-pcap_filename = "tcp_handshake.pcap"
-
-# Create a PcapWriter for saving packets
-pcap_writer = scapy.PcapWriter(pcap_filename)
-
-# Write the SYN packet to the pcap file
-pcap_writer.write(SYN_PACKET)
-
-if RESPONSE:
-    if RESPONSE.haslayer(scapy.TCP) and RESPONSE.getlayer(scapy.TCP).flags == 0x12:
-        # Create the ACK packet
-        ack_packet = scapy.IP(dst=target_ip) / scapy.TCP(dport=target_port, flags="A", ack=RESPONSE.getlayer(scapy.TCP).seq + 1)
-        
-        # Write RESPONSE and ACK packets to the pcap file
-        pcap_writer.write(RESPONSE)
-        pcap_writer.write(ack_packet)
-
-        print(f"TCP three-way handshake packets saved to {pcap_filename}")
-    else:
-        print("No valid RESPONSE received.")
+if SynAckResp is None:
+    print("No response received.")
 else:
-    print("No RESPONSE received.")
+    #ack packet
+    ACKPKT = TCP(dport=dport, flags="A", seq=SynAckResp.ack, ack=SynAckResp.seq + 1)
 
-# Close the PCAP file
-pcap_writer.close()
+    send(IPPKT / ACKPKT)
+
+    print("TCP 3-way handshake completed.")
+    
+fin_packet = TCP(dport=dport, flags="FA", seq=SynAckResp.ack, ack=SynAckResp.seq + 1)
+
+FinAckResp = sr1(IPPKT / fin_packet)
+
+ACKPKT = TCP(dport=dport, flags="A", seq=FinAckResp.ack, ack=FinAckResp.seq + 1)
+#and all the responses written in file
+send(IPPKT / ACKPKT)
+
+packets = [IPPKT / fin_packet, FinAckResp, IPPKT / ACKPKT]
+wrpcap("C:/Users/agraw/Downloads/TCP_handshake_close_2101CS69.pcap", packets)
